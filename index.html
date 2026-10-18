@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!-- 刘海屏安全区 + 禁止用户缩放，保证手机上排版稳定 -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B2140">
+<title>生日快乐</title>
+<meta name="description" content="一份认真准备的生日惊喜">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<!-- body 上的类会在「开场 → 正文」之间切换，控制整体氛围 -->
+<body class="is-intro">
+
+<!-- ============================================================
+     背景粒子层：星星 + 花瓣，由 script.js 驱动（Canvas）
+     ============================================================ -->
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="aurora" aria-hidden="true"></div>
+
+<!-- ============================================================
+     ① 开场页：礼物盒 + 呼吸动画
+     ============================================================ -->
+<div id="intro" class="intro">
+  <div class="intro-inner">
+    <p class="intro-kicker" id="introKicker">✦ 一份小心意 ✦</p>
+    <h1 class="intro-title" id="introTitle">有一份生日惊喜等你拆开</h1>
+
+    <!-- 礼物盒：纯 CSS 绘制，点击后播放拆盖动画 -->
+    <div class="gift-stage">
+      <button id="giftBtn" class="gift" aria-label="点击拆开礼物">
+        <span class="gift-glow"></span>
+        <span class="gift-box">
+          <span class="gift-body">
+            <span class="gift-ribbon-v"></span>
+          </span>
+          <span class="gift-lid">
+            <span class="gift-ribbon-h"></span>
+            <span class="gift-bow">
+              <span class="bow-loop left"></span>
+              <span class="bow-loop right"></span>
+              <span class="bow-knot"></span>
+            </span>
+          </span>
+        </span>
+        <span class="gift-sparkle s1">✦</span>
+        <span class="gift-sparkle s2">✧</span>
+        <span class="gift-sparkle s3">✦</span>
+      </button>
+      <span class="hold-bar" id="holdBar" aria-hidden="true"></span>
+    </div>
+    <p class="intro-hint" id="introHint">轻点礼物盒，开启今天的惊喜</p>
+    <button class="intro-sub" id="introSub" type="button" hidden>今天的主角是小卢同学</button>
+    <p class="shake-hint" id="shakeHint" hidden>再摇一摇 ✨</p>
+  </div>
+</div>
+
+<!-- ============================================================
+     ② 正文：手账式纵向滚动
+     ============================================================ -->
+<main id="site" class="site" hidden>
+
+  <!-- ---------- 主祝福 ---------- -->
+  <section id="sec-hero" class="panel panel-hero">
+    <p class="eyebrow" id="heroEyebrow">HAPPY BIRTHDAY</p>
+    <h2 class="hero-title" id="heroTitle">小卢同学，生日快乐</h2>
+    <div class="hero-divider" aria-hidden="true">
+      <span class="dot"></span><span class="line"></span><span class="star">✦</span><span class="line"></span><span class="dot"></span>
+    </div>
+
+    <!-- 打字机逐字显示的祝福语 -->
+    <p class="typewriter" id="typeLine" aria-live="polite"></p>
+
+    <p class="countdown" id="countdown" hidden></p>
+
+    <div class="hero-actions">
+      <button class="btn btn-ghost" id="skipTypeBtn" hidden>显示全文</button>
+      <button class="btn btn-primary" id="exploreBtn">继续探索 ↓</button>
+      <button class="btn btn-ghost" id="stampBtn" hidden>收下这句祝福</button>
+      <span class="stamp" id="stampSeal" aria-hidden="true" hidden></span>
+    </div>
+    <div id="heroFold" class="hero-fold" hidden>
+      <button class="hero-fold-head" type="button" id="heroFoldBtn"></button>
+      <div class="hero-fold-body" id="heroFoldBody"></div>
+    </div>
+  </section>
+
+  <!-- ---------- 生日蛋糕 ---------- -->
+  <section id="sec-cake" class="panel panel-cake">
+    <h3 class="sec-title">许个愿吧</h3>
+    <p class="sec-sub" id="cakeHint">闭上眼睛许个愿，然后点击蜡烛吹灭它</p>
+
+    <div class="cake-wrap">
+      <div class="cake" id="cake">
+        <!-- 蜡烛：3 根，点击吹灭 -->
+        <div class="candles">
+          <button class="candle" data-i="0" aria-label="蜡烛 1">
+            <span class="flame"><span class="flame-core"></span></span>
+            <span class="smoke"></span>
+            <span class="stick"></span>
+          </button>
+          <button class="candle tall" data-i="1" aria-label="蜡烛 2">
+            <span class="flame"><span class="flame-core"></span></span>
+            <span class="smoke"></span>
+            <span class="stick"></span>
+          </button>
+          <button class="candle" data-i="2" aria-label="蜡烛 3">
+            <span class="flame"><span class="flame-core"></span></span>
+            <span class="smoke"></span>
+            <span class="stick"></span>
+          </button>
+        </div>
+
+        <div class="tier tier-top">
+          <span class="drip d1"></span><span class="drip d2"></span><span class="drip d3"></span><span class="drip d4"></span>
+        </div>
+        <div class="tier tier-mid">
+          <span class="cherry c1"></span><span class="cherry c2"></span><span class="cherry c3"></span>
+        </div>
+        <div class="tier tier-base">
+          <span class="sprinkle s1"></span><span class="sprinkle s2"></span><span class="sprinkle s3"></span>
+          <span class="sprinkle s4"></span><span class="sprinkle s5"></span>
+        </div>
+        <div class="plate"></div>
+      </div>
+    </div>
+
+    <!-- 吹灭蜡烛后出现的专属祝福 -->
+    <p class="cake-msg" id="cakeMsg" hidden></p>
+    <p class="candle-words" aria-hidden="true"></p>
+    <button class="btn btn-ghost" id="relightBtn" hidden>重新点燃蜡烛</button>
+    <div class="wish-input-wrap" id="wishInputWrap" hidden>
+      <input id="wishInput" maxlength="40" placeholder="心里有个小愿望？写下来吧（可不填）">
+      <span class="wish-hint">愿望只有你能看到～</span>
+    </div>
+    <article class="wish-card" id="wishCard" hidden></article>
+  </section>
+
+  <!-- ---------- 回忆手账卡片 ---------- -->
+  <section id="sec-memories" class="panel panel-memories">
+    <h3 class="sec-title">我们的时光手账</h3>
+    <p class="sec-sub">随手记下的几页，都是真的</p>
+
+    <div class="deck-nav">
+      <button class="deck-btn" id="prevCard" aria-label="上一张">‹</button>
+      <span class="deck-index" id="deckIndex">1 / 5</span>
+      <button class="deck-btn" id="nextCard" aria-label="下一张">›</button>
+    </div>
+
+    <!-- 横向滑动容器：支持触摸滑动 + scroll-snap -->
+    <div class="deck" id="deck" tabindex="0" aria-label="回忆卡片，可左右滑动"></div>
+
+    <p class="deck-tip">← 左右滑动查看更多 →</p>
+  </section>
+
+  <!-- ---------- 心愿星星收集 ---------- -->
+  <section id="sec-stars" class="panel panel-stars">
+    <h3 class="sec-title">摘下五颗心愿星</h3>
+    <p class="sec-sub">每点一颗，都有一句想对你说的话</p>
+
+    <div class="star-counter">
+      <span class="counter-label">已点亮</span>
+      <span class="counter-num" id="starCount">0</span>
+      <span class="counter-total">/ 5</span>
+      <span class="counter-dots" id="starDots" aria-hidden="true"></span>
+    </div>
+
+    <!-- 星星散布区：位置用百分比，手机上也好点 -->
+    <div class="starfield" id="starfield"></div>
+
+    <!-- 集齐后的彩蛋 -->
+    <div class="secret" id="secret" hidden>
+      <div class="secret-bouquet" aria-hidden="true">
+        <span class="flower f1">🌷</span>
+        <span class="flower f2">🌼</span>
+        <span class="flower f3">🌸</span>
+        <span class="flower f4">🌻</span>
+        <span class="flower f5">💐</span>
+      </div>
+      <p class="secret-text" id="secretText"></p>
+    </div>
+  </section>
+
+  <!-- ---------- 祝福留言板 ---------- -->
+  <section id="sec-book" class="panel panel-book">
+    <h3 class="sec-title">写一句给小卢同学的话</h3>
+    <p class="sec-sub">会存在这台设备上，刷新也不会丢</p>
+
+    <form class="book-form" id="bookForm">
+      <input class="book-input" id="bookInput" type="text" maxlength="60"
+             placeholder="写下一句想对小卢同学说的话…" autocomplete="off">
+      <button class="btn btn-primary" type="submit">贴上去</button>
+    </form>
+
+    <div class="book-list" id="bookList"></div>
+    <button class="linklike" id="clearBook" hidden>清空留言</button>
+  </section>
+
+  <!-- ---------- 结尾页 ---------- -->
+  <section id="sec-end" class="panel panel-end">
+    <p class="end-kicker">✦ 2026 · 11.21 ✦</p>
+
+    <!-- 长按这个标题 2 秒有额外祝福 -->
+    <h2 class="end-title" id="endTitle">生日快乐</h2>
+
+    <p class="end-date" id="endDate">2026年11月21日</p>
+    <div class="end-sign">
+      <span class="sign-line" aria-hidden="true"></span>
+      <span class="sign-name" id="endSign">小王同学</span>
+    </div>
+
+    <div class="end-actions">
+      <button class="btn btn-primary" id="againFwBtn">再放一次烟花</button>
+      <button class="btn btn-ghost" id="copyLinkBtn">复制祝福链接</button>
+    </div>
+
+    <p class="end-longpress-tip" id="endTip">（悄悄说：长按上面的「生日快乐」试试）</p>
+    <p class="end-egg" id="endEgg" hidden></p>
+    <div class="end-actions-v2">
+      <button class="btn btn-ghost" id="posterBtn" hidden>生成生日海报</button>
+      <button class="btn btn-ghost" id="shareTextBtn" hidden>复制分享文案</button>
+      <button class="btn btn-ghost" id="backTopBtn" hidden>回到开头 ↑</button>
+    </div>
+
+    <p class="footer-note">Made with ✦ 一份认真准备的心意</p>
+  </section>
+
+</main>
+
+<!-- ============================================================
+     烟花 / 星光绽放层
+     ============================================================ -->
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<!-- 背景音乐：优先用同目录的 music.mp3，没有则自动用 Web Audio 生成八音盒 -->
+<audio id="bgm" loop preload="none"></audio>
+<button id="musicBtn" class="music-btn" aria-label="背景音乐开关" title="背景音乐">
+  <span class="mi" id="musicIcon">♪</span>
+</button>
+
+<!-- 页内提示（不使用 alert） -->
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="script.js"></script>
+<div id="scrollBar" class="scroll-bar" aria-hidden="true"></div>
+<nav id="navDots" class="nav-dots" aria-label="章节导航"></nav>
+<button id="reduceFxBtn" class="reduce-fx" type="button" hidden>减少动效</button>
+<div id="stickerFloat" class="sticker-float" aria-hidden="true"></div>
+</body>
+</html>
