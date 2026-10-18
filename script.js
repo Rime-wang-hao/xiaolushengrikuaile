@@ -286,10 +286,40 @@ const Sound = {
   },
 
   /* —— 背景音乐 —— */
+  // 文件可用性：null=未知, true=可用, false=不可用（404/格式错/被浏览器拒）
+  fileAvailable: null,
+  // 第一次切到合成音时给一次温和提示，之后不再 toast
+  synthNotified: false,
+
   initBgm() {
-    // 指向同目录的 music.mp3。文件不存在时 play() 会 reject，自动改用合成八音盒
+    // 指向同目录的 music.mp3；没有就回退到 Web Audio 合成八音盒
     this.bgmEl.src = CONFIG.music.file;
     this.bgmEl.volume = clamp(CONFIG.music.volume, 0, 1);
+    this.bgmEl.loop = true;
+
+    // 监听文件加载结果（决定之后是否再试文件）
+    this.bgmEl.addEventListener('canplay', () => { this.fileAvailable = true; }, { once: true });
+    this.bgmEl.addEventListener('error',   () => { this.fileAvailable = false; });
+
+    // 真实播放/暂停状态 → 同步到 UI
+    // 覆盖：浏览器原生控制 / 系统拦截 / 网络异常等情况
+    this.bgmEl.addEventListener('play',  () => this.syncUi());
+    this.bgmEl.addEventListener('pause', () => this.syncUi());
+
+    // 初始 UI
+    this.syncUi();
+  },
+
+  /** 同步右上角 #musicBtn 的视觉状态，UI 永远跟 this.on 保持一致 */
+  syncUi() {
+    const btn = $('#musicBtn');
+    if (!btn) return;
+    const ic = btn.querySelector('.mi');
+    if (ic) ic.textContent = '\u266A'; // ♪（off 状态由 CSS 加删除线，无需换字符）
+    btn.classList.toggle('on',  !!this.on);
+    btn.classList.toggle('off', !this.on);
+    btn.setAttribute('aria-label', this.on ? '\u80cc\u666f\u97f3\u4e50\uff1a\u5f00' : '\u80cc\u666f\u97f3\u4e50\uff1a\u5173');
+    btn.setAttribute('title',      this.on ? '\u70b9\u51fb\u6682\u505c\u97f3\u4e50' : '\u70b9\u51fb\u64ad\u653e\u97f3\u4e50');
   },
 
   toggle() {
@@ -303,26 +333,37 @@ const Sound = {
       try { await this.ctx.resume(); } catch (e) {}
     }
     this.on = true;
-    $('#musicBtn').classList.add('on');
+    this.syncUi();
 
-    if (!this.bgmEl.error) {
+    // 1) 优先文件（不强制预检 fileAvailable：play() 会自动等 canplay）
+    if (this.fileAvailable !== false) {
       try {
         await this.bgmEl.play();
         this.playing = 'file';
         return;
-      } catch (e) { /* 没有 music.mp3 → 走下面的合成 */ }
+      } catch (e) {
+        // 文件缺失/格式错/被浏览器拒 → 标记为不可用，下次不再试
+        this.fileAvailable = false;
+      }
     }
+    // 2) 文件失败 → 走合成八音盒（不报错、不弹窗）
     this.startSynth();
     this.playing = 'synth';
+
+    // 3) 第一次切到合成时给一次温和 Toast 提示，之后不再打扰
+    if (!this.synthNotified) {
+      this.synthNotified = true;
+      toast('\u80cc\u666f\u97f3\u4e50\u5df2\u5207\u6362\u5230\u5185\u7f6e\u516b\u97f3\u76d2 \u266a', 2400);
+    }
   },
 
   stopBgm() {
     this.on = false;
     this.playing = null;
-    $('#musicBtn').classList.remove('on');
     try { this.bgmEl.pause(); } catch (e) {}
     clearInterval(this.synth.timer);
     this.synth.timer = null;
+    this.syncUi();
   },
 
   /** 合成一段轻柔《小星星》循环（无音频文件时的兜底） */
