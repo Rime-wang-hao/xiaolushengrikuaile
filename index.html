@@ -80,6 +80,7 @@
       <button class="btn btn-ghost" id="stampBtn" hidden>收下这句祝福</button>
       <span class="stamp" id="stampSeal" aria-hidden="true" hidden></span>
     </div>
+
     <div id="heroFold" class="hero-fold" hidden>
       <button class="hero-fold-head" type="button" id="heroFoldBtn"></button>
       <div class="hero-fold-body" id="heroFoldBody"></div>
@@ -182,6 +183,36 @@
     </div>
   </section>
 
+  <!-- ---------- 生日回顾 · 隔空同享 ---------- -->
+  <section id="sec-share" class="panel panel-share" data-nav="隔空同享">
+    <h3 class="sec-title" id="shareTitle">生日回顾·隔空同享</h3>
+    <p class="sec-sub" id="shareSub">虽然没能吃到彼此的蛋糕，但祝福早已跨越距离</p>
+
+    <!-- 两张拍立得：并排显示，窄屏自动上下排列 -->
+    <div class="polaroids" id="polaroids">
+      <figure class="polaroid">
+        <img class="polaroid-img" id="cakeHer" src="cake_hers.jpg" alt="你的蛋糕" loading="lazy">
+        <figcaption class="polaroid-cap" id="cakeHerCap">你的蛋糕</figcaption>
+      </figure>
+      <figure class="polaroid">
+        <img class="polaroid-img" id="cakeMine" src="cake_mine.jpg" alt="我的蛋糕" loading="lazy">
+        <figcaption class="polaroid-cap" id="cakeMineCap">我的蛋糕</figcaption>
+      </figure>
+    </div>
+
+    <p class="share-tip" id="shareTip">点一下蛋糕，试试看会发生什么 ✦</p>
+
+    <!-- 实物礼物：滚动到板块底部（或看到蛋糕照片）时缓缓淡入 -->
+    <figure class="share-gift" id="shareGift" hidden>
+      <div class="gift-photo">
+        <img class="share-gift-img" id="shareGiftImg" src="surprise.jpg" alt="为你准备的生日惊喜" loading="lazy" decoding="async">
+        <span class="gift-loading" id="giftLoading" aria-hidden="true"></span>
+        <span class="gift-error" id="giftError" hidden>图片走丢啦，但我的心意没有丢哦 ✦</span>
+      </div>
+      <figcaption class="share-gift-cap" id="shareGiftCap"></figcaption>
+    </figure>
+  </section>
+
   <!-- ---------- 祝福留言板 ---------- -->
   <section id="sec-book" class="panel panel-book">
     <h3 class="sec-title">写一句给小卢同学的话</h3>
@@ -221,6 +252,22 @@
       <button class="btn btn-ghost" id="posterBtn" hidden>生成生日海报</button>
       <button class="btn btn-ghost" id="shareTextBtn" hidden>复制分享文案</button>
       <button class="btn btn-ghost" id="backTopBtn" hidden>回到开头 ↑</button>
+      <!-- 终极彩蛋：在结尾页停留够久后悄悄浮现 -->
+      <button class="btn btn-ghost secret-letter-btn" id="secretLetterBtn" hidden>💌 还有一封小信</button>
+    </div>
+
+    <!-- 终极彩蛋：一封小信（信纸弹窗） -->
+    <div class="letter-modal" id="letterModal" hidden>
+      <div class="letter-paper" role="dialog" aria-modal="true" aria-labelledby="letterTitle">
+        <div class="letter-envelope" aria-hidden="true"><i class="letter-envelope-flap"></i></div>
+        <button class="letter-close" id="letterClose" type="button" aria-label="关闭">×</button>
+        <h3 class="letter-title" id="letterTitle"></h3>
+        <div class="letter-body" id="letterBody"></div>
+        <div class="letter-sign-row">
+          <p class="letter-sign" id="letterSign"></p>
+          <p class="letter-date" id="letterDate"></p>
+        </div>
+      </div>
     </div>
 
     <p class="footer-note">Made with ✦ 一份认真准备的心意</p>
