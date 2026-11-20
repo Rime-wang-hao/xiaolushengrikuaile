@@ -280,9 +280,10 @@
      ============================================================ -->
 <canvas id="fx" aria-hidden="true"></canvas>
 
-<!-- 背景音乐：优先用同目录的 music.mp3，没有则自动用 Web Audio 生成八音盒
-     preload="auto" 让浏览器在用户点击前先下载文件，避免首次 play 时卡顿 -->
-<audio id="bgm" loop preload="auto" src="music.mp3"></audio>
+<!-- 背景音乐：优先用同目录的 music.mp3，没有则自动用 Web Audio 生成八音盒。
+     这里不写死 src，由 script.js 在真正需要走「<audio loop>」时才加载，
+     免得短音频被 fetch 与 <audio> 各下载一遍；loop 属性是浏览器原生循环兜底 -->
+<audio id="bgm" loop preload="auto"></audio>
 <button id="musicBtn" class="music-btn" aria-label="背景音乐开关" title="背景音乐">
   <span class="mi" id="musicIcon">♪</span>
 </button>

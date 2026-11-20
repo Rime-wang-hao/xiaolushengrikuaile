@@ -126,7 +126,7 @@ const CONFIG = {
     ],
     // 集齐 5 颗后的彩蛋
     secret: {
-      text: '五颗星都替你收好啦。新的一岁尽管往前走，累了随时回头——朋友一直都在。',
+      text: '五颗星都替你收好啦。新的一岁，愿你自由热烈，万事顺意，继续闪闪发光！累了随时回头，朋友一直都在。',
     },
   },
 
@@ -143,7 +143,7 @@ const CONFIG = {
     samples: [
       { text: '愿你今年想去的地方，都能去成。', by: '小王同学' },
       { text: '朋友记得按时吃饭，别老熬夜——虽然我也不敢说自己做到了。', by: '小王同学' },
-      { text: '生日快乐！新的一岁继续一起吐槽、继续一起加油。', by: '小王同学' },
+      { text: '生日快乐！新的一岁，愿你自由热烈，万事顺意，继续闪闪发光！', by: '小王同学' },
     ],
   },
 
@@ -151,15 +151,15 @@ const CONFIG = {
   ending: {
     kicker: '✦ 11.21 ✦',
     title: '生日快乐',
-    // ★ 落款署名（结尾页底部"—— 小王同学 ——"）。这是写信人。
-    //   印章里的"小卢同学 · 收"是收件人印章，不要写到这里，避免混淆。
-    //   想改署名只改这一行，印章文案请改 V2.stampText。
+    // ★ 落款署名（结尾页底部 + 海报底部 "From 小王同学"）。这是写信人。
+    //   海报上不再出现「XX 收」这类收件人印章。
+    //   想改署名只改这一行。
     sign: '小王同学',            // ← 落款署名（替换成你的名字）
     againFwBtn: '再放一次烟花',
     copyBtn: '复制祝福链接',
     tip: '（悄悄说：长按上面的「生日快乐」试试）',
     // 长按标题 2 秒出现的额外祝福
-    longPressEgg: '还有一句：谢谢你一直愿意听我碎碎念。新的一岁，继续一起走。',
+    longPressEgg: '还有一句：谢谢你一直愿意听我碎碎念。新的一岁，愿你自由热烈，万事顺意，继续闪闪发光！',
     // ★★ 终极彩蛋「一封小信」★★
     //   触发方式：在结尾页停留 30 秒后，「回到开头 ↑」旁边会悄悄浮现「💌 还有一封小信」
     //   正文里的 \n\n 表示分段（每段会自动排成一个自然段，首行缩进两字）
@@ -182,11 +182,30 @@ const CONFIG = {
 
   /* —— 音乐 —— */
   music: {
-    // 把音频文件命名为 music.mp3 放到本目录，就会自动使用它；
-    // 没有这个文件时，程序会自动用 Web Audio 生成一段轻柔八音盒（见 startSynthMusic）
+    // 背景音乐文件（放在本目录，与 index.html 同级）：默认播放完整原曲
     file: 'music.mp3',
-    volume: 0.5,
+    volume: 0.3,                 // ← 原曲作为背景铺垫，压低到 0.3，不盖过点击音效
     autoStart: true,             // ← 拆完礼物是否自动开始播放（false = 手动点右上角按钮）
+    // 无缝循环策略（按文件自适应，三级兜底都不丢）：
+    //   ① 短音频（≤ maxLoopSeconds 且 ≤ maxDecodeBytes）走 Web Audio 无缝循环：
+    //      解码后修剪首尾静音 + 交叉淡化，循环接缝听不出断点
+    //   ② music.mp3 这类长音频（11MB / 279.6s）自动跳过解码，走 <audio loop> 原生循环，省内存
+    //   ③ 文件缺失或解码失败再降级为内置合成八音盒
+    maxLoopSeconds: 30,          // 解码后超过这个长度就放弃无缝处理，走 <audio loop>
+    maxDecodeBytes: 8 * 1024 * 1024,  // 文件超过这个大小直接不解码（避免手机上解码大文件爆内存）
+  },
+
+  /* —— 音效（真实音频文件，零依赖）—— */
+  sfx: {
+    enable: true,                 // ← false = 所有音效静音（playSfx 直接 return）
+    volume: 0.85,                 // 音效音量
+    // 把下面 4 个 mp3 放到本目录（与 index.html 同级），文件名不要改
+    files: {
+      click: 'sfx-click.mp3',     // 按钮点击 / 拆礼物 / 卡片翻转
+      page:  'sfx-page.mp3',      // 时光手账左右翻页
+      blow:  'sfx-blow.mp3',      // 吹灭蜡烛
+      chime: 'sfx-chime.mp3',     // 许愿成功 / 盖章 / 终极小信 / 当天烟花
+    },
   },
 
   /* —— 粒子密度（移动端会自动减半，无需改）—— */
@@ -266,15 +285,14 @@ const CONFIG = {
     { k: '星座',     v: '天蝎座 ♏' },
     { k: '今日标签', v: '被惦记的小寿星' },
   ],
-  // ★ 印章文案 = 「收件人印章」。这是小王同学写给小卢同学的祝福，
-  //   所以印章显示"小卢同学 · 收"，表示「她收下这份祝福」。
-  //   「小王同学」是写信人，只出现在结尾页落款（CONFIG.ending.sign），
-  //   不要混到这里。改收件人只改这一行。
-  stampText: '小卢同学 · 收',                       // ← 收件人印章（可替换）
+  // ★ stampText = 页面交互用的印章文字（点「收下这句祝福」时出现）。
+  //   两套「海报」画布已不再渲染它（避免出现「XX 收」像快递单），
+  //   这里保留只影响网页里的印章交互。
+    stampText: '小卢同学 · 收',                       // ← 页面印章文字（海报不渲染）
   candleWords: ['愿烦恼都被风吹走','愿想去的地方都能出发','愿快乐随时满格'],
   stickerReplies: ['收到！✦','哈哈，贴起来！','我就知道。','记下啦 ✧'],
   messageStickers: ['🌸','⭐','🎀','🍰','✨'],
-  shareText: '今天是小卢同学的生日，这封祝福送给你：愿你新的一岁，烦恼自动静音、快乐随时满格。',  // ← 可替换
+  shareText: '今天是小卢同学的生日，这封祝福送给你：新的一岁，愿你自由热烈，万事顺意，继续闪闪发光！',  // ← 可替换
   posterSub: '2026年11月21日 · 一封祝福',           // ← 可替换
   skipConfirmText: '确定要直接进入祝福页吗？',
   skipConfirmYes: '进入',
@@ -376,9 +394,19 @@ const Sound = {
   ctx: null,
   master: null,
   bgmEl: $('#bgm'),
-  playing: null,       // 'file' = 正在放 music.mp3，'synth' = 正在放合成八音盒
+  playing: null,       // 'webaudio' = 无缝循环缓冲，'file' = <audio loop>，'synth' = 合成八音盒
   on: false,
+  busy: false,         // 正在启动中（防止连点造成重复启动）
   synth: { timer: null, step: 0, nextAt: 0 },
+  wa: {                // Web Audio 无缝循环的状态
+    promise: null,     // 预取（fetch）promise
+    ab: null,          // 音频二进制
+    buf: null,         // 解码并做过接缝处理后的 AudioBuffer（短音频才保留）
+    src: null,         // 当前播放的 AudioBufferSourceNode
+    gain: null,
+    tooLarge: false,   // 文件体积超限 → 不解码，走 <audio loop>
+    failed: false,     // 预取/解码失败（file://、404、文件太大）→ 永久走 <audio loop>
+  },
 
   /** AudioContext 必须在用户手势之后创建 */
   ensure() {
@@ -410,49 +438,9 @@ const Sound = {
     o.stop(at + dur + 0.06);
   },
 
-  /** 短促上行琶音：拆礼物 / 集齐星星 */
-  chime() {
-    if (!this.ensure()) return;
-    const t = this.ctx.currentTime;
-    [784, 988, 1175, 1568].forEach((fq, i) => this.note(fq, t + i * 0.09, 0.55, 0.09));
-  },
-
-  /** 吹气声：吹灭蜡烛 */
-  whoosh() {
-    if (!this.ensure()) return;
-    const t = this.ctx.currentTime;
-    const len = 0.5;
-    const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * len, this.ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) {
-      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
-    }
-    const src = this.ctx.createBufferSource();
-    const g = this.ctx.createGain();
-    const f = this.ctx.createBiquadFilter();
-    f.type = 'bandpass'; f.frequency.value = 900;
-    g.gain.value = 0.22;
-    src.buffer = buf;
-    src.connect(f); f.connect(g); g.connect(this.master);
-    src.start(t);
-  },
-
-  /** 星星点亮：单音叮 */
-  ping(i = 0) {
-    if (!this.ensure()) return;
-    const scale = [659, 784, 880, 988, 1175];
-    this.note(scale[i % scale.length], this.ctx.currentTime, 0.5, 0.08);
-  },
-
-  /** 烟花：低音垫 + 高音散点 */
-  boom() {
-    if (!this.ensure()) return;
-    const t = this.ctx.currentTime;
-    this.note(196, t, 0.7, 0.07, 'sine');
-    for (let i = 0; i < 6; i++) {
-      this.note(rand(1200, 2400), t + rand(0.02, 0.4), 0.3, 0.035);
-    }
-  },
+  /* —— 音效已改为真实音频文件（sfx-click / sfx-page / sfx-blow / sfx-chime）——
+     见下方 Sfx 模块与全局 playSfx()。
+     这里只保留背景音乐（music.mp3 + 无文件时的合成八音盒兜底）所需的 Web Audio。 */
 
   /* —— 背景音乐 —— */
   // 文件可用性：null=未知, true=可用, false=不可用（404/格式错/被浏览器拒）
@@ -461,14 +449,15 @@ const Sound = {
   synthNotified: false,
 
   initBgm() {
-    // 指向同目录的 music.mp3；没有就回退到 Web Audio 合成八音盒
-    this.bgmEl.src = CONFIG.music.file;
-    this.bgmEl.volume = clamp(CONFIG.music.volume, 0, 1);
+    // <audio> 元素：先不设 src，等确定要走「文件播放」这条路时再加载，
+    // 免得短音频被 fetch 和 <audio> 各下载一遍
     this.bgmEl.loop = true;
+    this.bgmEl.volume = clamp(CONFIG.music.volume, 0, 1);
 
     // 监听文件加载结果（决定之后是否再试文件）
     this.bgmEl.addEventListener('canplay', () => { this.fileAvailable = true; }, { once: true });
-    this.bgmEl.addEventListener('error',   () => { this.fileAvailable = false; });
+    // 文件缺失 / 格式错 / 循环异常 → 温和降级到合成八音盒，不打断页面
+    this.bgmEl.addEventListener('error',   () => { this.fileAvailable = false; this.onBgmFail(); });
 
     // 真实播放/暂停状态 → 同步到 UI
     // 覆盖：浏览器原生控制 / 系统拦截 / 网络异常等情况
@@ -477,6 +466,155 @@ const Sound = {
 
     // 初始 UI
     this.syncUi();
+
+    // 后台预取音频二进制（只 fetch，不创建 AudioContext），为「无缝循环」做准备；失败静默
+    this.prefetchBgm();
+  },
+
+  /* —— Web Audio 无缝循环（短音频专用）—— */
+
+  /** 预取音乐文件二进制；file:// 下 fetch 被拦、404、文件过大 → 静默标记失败 */
+  prefetchBgm() {
+    if (this.wa.promise || this.wa.failed) return this.wa.promise || Promise.resolve();
+    const url = CONFIG.music.file;
+    const max = CONFIG.music.maxDecodeBytes || 8 * 1024 * 1024;
+    // 先用 HEAD 探一下体积（只回 header，不传 body）：
+    // 大文件（如 11MB 的 music.mp3）直接判定「不解码」，交给 <audio loop>，省流量也省手机内存
+    this.wa.promise = fetch(url, { method: 'HEAD', cache: 'force-cache' })
+      .then((r) => (r.ok ? r.headers.get('content-length') : null))
+      .catch(() => null)                       // 服务器不支持 HEAD → 退化成 GET
+      .then((lenStr) => {
+        const len = Number(lenStr || 0);
+        if (len && len > max) {                // 太大的文件不解码（手机上解码大文件容易爆内存）
+          this.wa.tooLarge = true;
+          throw new Error('file too large');
+        }
+        return fetch(url, { cache: 'force-cache' })
+          .then((r) => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.arrayBuffer();
+          });
+      })
+      .then((ab) => { this.wa.ab = ab; })
+      .catch(() => { this.wa.ab = null; this.wa.failed = true; });
+    return this.wa.promise;
+  },
+
+  /** 解码成 AudioBuffer 并处理循环接缝；不可用时返回 null（静默回退） */
+  async decodeBgm(timeoutMs = 2500) {
+    if (this.wa.buf) return this.wa.buf;
+    if (this.wa.failed) return null;
+    const timer = new Promise((res) => setTimeout(res, timeoutMs));
+    await Promise.race([this.prefetchBgm(), timer]);
+    if (this.wa.failed || !this.wa.ab) return null;
+    const ctx = this.ensure();
+    if (!ctx || typeof ctx.decodeAudioData !== 'function') { this.wa.failed = true; return null; }
+    try {
+      const raw = await ctx.decodeAudioData(this.wa.ab);
+      this.wa.ab = null;                       // decode 会转移 ArrayBuffer，用完即弃
+      if (!raw || !raw.length || !raw.sampleRate) { this.wa.failed = true; return null; }
+      const maxSec = CONFIG.music.maxLoopSeconds || 30;
+      if (raw.duration > maxSec) {             // 太长就不做无缝处理，改用 <audio loop> 省内存
+        this.wa.failed = true;
+        return null;
+      }
+      this.wa.buf = this.makeSeamless(raw);
+      return this.wa.buf;
+    } catch (e) {
+      this.wa.failed = true;                   // 解码失败（格式怪 / 带大图）→ 静默回退
+      return null;
+    }
+  },
+
+  /** 修剪首尾静音 + 交叉淡化：让循环接缝听不出停顿与爆音 */
+  makeSeamless(buf) {
+    try {
+      const sr = buf.sampleRate;
+      const chs = Math.max(1, buf.numberOfChannels || 1);
+      const len = buf.length;
+      if (!sr || !len) return buf;
+      const chans = [];
+      for (let c = 0; c < chs; c++) chans.push(buf.getChannelData(c));
+
+      // 1) 找首尾静音（阈值 0.004，最多各裁 3 秒：音乐盒片段常带一段空白）
+      const thr = 0.004;
+      const maxTrim = Math.floor(sr * 3);
+      let s = 0, e = len - 1;
+      const quiet = (i) => {
+        for (let c = 0; c < chs; c++) if (Math.abs(chans[c][i]) >= thr) return false;
+        return true;
+      };
+      while (s < e && s < maxTrim && quiet(s)) s++;
+      while (e > s && (len - 1 - e) < maxTrim && quiet(e)) e--;
+      if (e <= s + 1) return buf;              // 全静音 / 太短 → 保持原样
+
+      // 2) 交叉淡化（默认 60ms）：尾部淡出叠加到头部，接缝处不爆音
+      const fade = Math.max(8, Math.min(Math.floor(sr * 0.06), Math.floor((e - s) / 4)));
+      const outLen = (e - s + 1) - fade;
+      if (outLen < 1) return buf;
+      const out = this.ctx.createBuffer(chs, outLen, sr);
+      for (let c = 0; c < chs; c++) {
+        const srcD = chans[c];
+        const dst = out.getChannelData(c);
+        for (let i = 0; i < outLen; i++) dst[i] = srcD[s + i];
+        for (let i = 0; i < fade; i++) {
+          const t = i / fade;
+          dst[i] = dst[i] * t + srcD[e - fade + 1 + i] * (1 - t);
+        }
+      }
+      return out;
+    } catch (e) {
+      return buf;                              // 处理失败就用原样：宁可有一点缝也不报错
+    }
+  },
+
+  /** 用 AudioBufferSourceNode 做真正无缝的循环播放 */
+  playBuffer(buf) {
+    this.stopBuffer();
+    const ctx = this.ensure();
+    if (!ctx) throw new Error('no AudioContext');
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;                            // ← Web Audio 的循环机制
+    const g = ctx.createGain();
+    g.gain.value = clamp(CONFIG.music.volume, 0, 1);
+    src.connect(g);
+    g.connect(this.master);
+    src.start(0);
+    this.wa.src = src;
+    this.wa.gain = g;
+    return src;
+  },
+
+  stopBuffer() {
+    const s = this.wa.src;
+    if (s) {
+      try { s.stop(); } catch (e) {}
+      try { s.disconnect(); } catch (e) {}
+    }
+    if (this.wa.gain) { try { this.wa.gain.disconnect(); } catch (e) {} }
+    this.wa.src = null;
+    this.wa.gain = null;
+  },
+
+  /** <audio> 出错（文件缺失 / 格式怪 / 循环异常）→ 无声降级到合成八音盒 */
+  onBgmFail() {
+    if (!this.on || this.playing === 'webaudio' || this.playing === 'synth') return;
+    try { this.bgmEl.pause(); } catch (e) {}
+    this.startSynth();
+    this.playing = 'synth';
+  },
+
+  /** 需要走 <audio loop> 时才给元素设 src（避免同一文件被下载两遍） */
+  ensureBgmSrc() {
+    try {
+      if (!this.bgmEl.getAttribute('src')) {
+        this.bgmEl.src = CONFIG.music.file;
+        this.bgmEl.loop = true;
+        this.bgmEl.preload = 'auto';
+        this.bgmEl.volume = clamp(CONFIG.music.volume, 0, 1);
+      }
+    } catch (e) {}
   },
 
   /** 同步右上角 #musicBtn 的视觉状态，UI 永远跟 this.on 保持一致 */
@@ -495,34 +633,55 @@ const Sound = {
     this.on ? this.stopBgm() : this.startBgm();
   },
 
-  /** 开始背景音乐：先试 music.mp3，文件不存在或被浏览器拦截就改用合成八音盒 */
+  /** 开始背景音乐：Web Audio 无缝循环 → <audio loop> → 合成八音盒（三级兜底，任何一级失败都不报错） */
   async startBgm() {
+    if (this.busy) { this.on = true; this.syncUi(); return; }   // 已在启动流程中
     this.ensure();
     if (this.ctx && this.ctx.state === 'suspended') {
       try { await this.ctx.resume(); } catch (e) {}
     }
     this.on = true;
     this.syncUi();
-
-    // 1) 优先文件（不强制预检 fileAvailable：play() 会自动等 canplay）
-    if (this.fileAvailable !== false) {
-      try {
-        await this.bgmEl.play();
-        this.playing = 'file';
-        return;
-      } catch (e) {
-        // 文件缺失/格式错/被浏览器拒 → 标记为不可用，下次不再试
-        this.fileAvailable = false;
+    this.busy = true;
+    try {
+      // 1) 首选「Web Audio 无缝循环」：短音频解码后修剪首尾静音 + 交叉淡化，接缝无断点
+      const buf = await this.decodeBgm();
+      if (!this.on) return;                     // 等待期间用户又关掉了
+      if (buf) {
+        try {
+          this.playBuffer(buf);
+          this.playing = 'webaudio';
+          return;
+        } catch (e) { /* 继续往下兜底 */ }
       }
-    }
-    // 2) 文件失败 → 走合成八音盒（不报错、不弹窗）
-    this.startSynth();
-    this.playing = 'synth';
+      if (!this.on) return;
 
-    // 3) 第一次切到合成时给一次温和 Toast 提示，之后不再打扰
-    if (!this.synthNotified) {
-      this.synthNotified = true;
-      toast('\u80cc\u666f\u97f3\u4e50\u5df2\u5207\u6362\u5230\u5185\u7f6e\u516b\u97f3\u76d2 \u266a', 2400);
+      // 2) 次选 <audio loop>（file:// 打开、文件太大或解码失败时走这里）
+      if (this.fileAvailable !== false) {
+        try {
+          this.ensureBgmSrc();
+          await this.bgmEl.play();
+          if (!this.on) { this.bgmEl.pause(); return; }
+          this.playing = 'file';
+          return;
+        } catch (e) {
+          // 文件缺失/格式错/被浏览器拒 → 标记为不可用，下次不再试
+          this.fileAvailable = false;
+        }
+      }
+      if (!this.on) return;
+
+      // 3) 最后回退到合成八音盒（不报错、不弹窗）
+      this.startSynth();
+      this.playing = 'synth';
+
+      // 第一次切到合成时给一次温和 Toast 提示，之后不再打扰
+      if (!this.synthNotified) {
+        this.synthNotified = true;
+        toast('\u80cc\u666f\u97f3\u4e50\u5df2\u5207\u6362\u5230\u5185\u7f6e\u516b\u97f3\u76d2 \u266a', 2400);
+      }
+    } finally {
+      this.busy = false;
     }
   },
 
@@ -530,6 +689,7 @@ const Sound = {
     this.on = false;
     this.playing = null;
     try { this.bgmEl.pause(); } catch (e) {}
+    this.stopBuffer();                          // 停掉 Web Audio 循环
     clearInterval(this.synth.timer);
     this.synth.timer = null;
     this.syncUi();
@@ -566,6 +726,101 @@ const Sound = {
     }, 120);
   },
 };
+
+/* ============================================================================
+   3.5 音效：真实音频文件（零依赖，直接播放同目录 mp3）
+   —— sfx-click / sfx-page / sfx-blow / sfx-chime
+   —— 文件缺失只打一条温和 warn 并静音降级，绝不影响页面流程
+   ========================================================================== */
+const Sfx = {
+  els: {},          // name -> HTMLAudioElement
+  warned: {},       // name -> 是否已提示过（避免同一个文件反复刷 warn）
+  unlocked: false,  // 移动端是否已完成「手势解锁」
+
+  /** 音量（0~1） */
+  vol() {
+    const v = (CONFIG.sfx && CONFIG.sfx.volume) != null ? CONFIG.sfx.volume : 0.85;
+    return clamp(v, 0, 1);
+  },
+
+  /** 温和告警：只提示一次，静音降级，不抛错 */
+  warn(name, src) {
+    if (this.warned[name]) return;
+    this.warned[name] = true;
+    console.warn('[sfx] 音效文件不可用，已静音：' + src);
+  },
+
+  /** 实例化 + 预加载全部音效文件（页面初始化时调用；幂等，可重复调用） */
+  init() {
+    if (!CONFIG.sfx || CONFIG.sfx.enable === false) return;
+    const files = CONFIG.sfx.files || {};
+    Object.keys(files).forEach((name) => {
+      if (this.els[name]) return;
+      let el;
+      try {
+        el = new Audio(files[name]);
+      } catch (e) {
+        this.warn(name, files[name]);
+        return;
+      }
+      el.preload = 'auto';
+      el.volume = this.vol();
+      el.addEventListener('error', () => this.warn(name, files[name]));
+      try { el.load(); } catch (e) {}
+      this.els[name] = el;
+    });
+  },
+
+  /** 移动端解锁：必须在用户手势的同步事件里让每个音频各播一次（静音），
+      否则之后的 play() 会被自动播放策略拒绝（桌面端无此限制） */
+  unlock() {
+    if (this.unlocked) return;
+    this.unlocked = true;
+    const vol = this.vol();
+    Object.keys(this.els).forEach((name) => {
+      const el = this.els[name];
+      if (!el) return;
+      const restore = () => { try { el.pause(); el.currentTime = 0; el.volume = vol; } catch (e) {} };
+      try {
+        el.volume = 0;
+        const p = el.play();
+        if (p && typeof p.then === 'function') {
+          p.then(restore).catch(() => { try { el.volume = vol; } catch (e) {} });
+        } else {
+          restore();
+        }
+      } catch (e) {
+        try { el.volume = vol; } catch (e2) {}
+      }
+    });
+  },
+
+  /** 播放一个音效；enable=false 或文件不可用时静默返回 */
+  play(name) {
+    if (!CONFIG.sfx || CONFIG.sfx.enable === false) return;
+    const files = CONFIG.sfx.files || {};
+    const src = files[name];
+    if (!src) { console.warn('[sfx] 未定义的音效：' + name); return; }
+    let el = this.els[name];
+    if (!el) {
+      this.init();
+      el = this.els[name];
+      if (!el) return;   // 文件不可用 → 已 warn，静音降级
+    }
+    try {
+      el.currentTime = 0;   // 归零：防止连续点击时声音叠加 / 没声音
+      const p = el.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});  // 被自动播放策略拦截 → 静默
+    } catch (e) {
+      // 旧浏览器 play() 抛异常 → 静默降级
+    }
+  },
+};
+
+/** 全局播放入口：playSfx('click' | 'page' | 'blow' | 'chime') */
+function playSfx(name) {
+  try { Sfx.play(name); } catch (e) { /* 任何异常都不影响流程 */ }
+}
 
 /* ============================================================================
    4. 背景粒子：星星闪烁 + 花瓣飘落（单个 rAF 统一驱动）
@@ -731,7 +986,7 @@ const Fx = {
     for (let i = 0; i < count; i++) {
       setTimeout(() => {
         this.burst(rand(this.w * 0.15, this.w * 0.85), rand(this.h * 0.12, this.h * 0.5));
-        if (Sound.ctx) Sound.boom();
+        playSfx('chime');
       }, i * (span / count));
     }
   },
@@ -845,9 +1100,12 @@ function initIntro() {
     opened = true;
     Sound.ensure();
     if (Sound.ctx && Sound.ctx.state === 'suspended') Sound.ctx.resume();
+    // 首个用户手势：实例化 + 预加载 + 解锁音效（移动端必须在手势里解锁）
+    Sfx.init();
+    Sfx.unlock();
 
     gift.classList.add('opened');
-    Sound.chime();
+    playSfx('click');
     // 礼物盒位置放一朵星光
     const _gr = gift.getBoundingClientRect();
     if (_gr && _gr.width) Fx.burst(_gr.left + _gr.width / 2, _gr.top + _gr.height / 2, { count: IS_TOUCH ? 30 : 50, speed: 3 });
@@ -944,7 +1202,7 @@ function initCake() {
         return;
       }
       c.classList.add('out');
-      Sound.whoosh();
+      playSfx('blow');
       blown++;
 
       if (blown >= candles.length && !allOut) {
@@ -972,7 +1230,7 @@ function initCake() {
     msg.classList.remove('shown');
     relight.hidden = true;
     setTimeout(() => { msg.hidden = true; }, 400);
-    Sound.ping(2);
+    playSfx('click');
   });
 }
 
@@ -1011,8 +1269,15 @@ function initMemories() {
   }
 
   const step = () => (items[0] ? items[0].offsetWidth + 16 : 300);
-  $('#prevCard').addEventListener('click', () => { deck.scrollBy({ left: -step() }); Sound.ping(0); });
-  $('#nextCard').addEventListener('click', () => { deck.scrollBy({ left: step() }); Sound.ping(1); });
+  let lastPage = 1;
+  let lastBtnAt = 0;   // 按钮翻页的时间戳：避免与滑动翻页重复发声
+  const goPage = (dir) => {
+    lastBtnAt = Date.now();
+    deck.scrollBy({ left: dir * step() });
+    playSfx('page');
+  };
+  $('#prevCard').addEventListener('click', () => goPage(-1));
+  $('#nextCard').addEventListener('click', () => goPage(1));
 
   let t = null;
   deck.addEventListener('scroll', () => {
@@ -1020,6 +1285,9 @@ function initMemories() {
     t = setTimeout(() => {
       const cur = Math.round(deck.scrollLeft / step()) + 1;
       idx.textContent = `${clamp(cur, 1, cards.length)} / ${cards.length}`;
+      // 左右滑动翻页发声（按钮翻页已单独发声，这里跳过，避免重复）
+      if (cur !== lastPage && Date.now() - lastBtnAt > 400) playSfx('page');
+      lastPage = cur;
     }, 120);
   }, { passive: true });
 }
@@ -1062,7 +1330,7 @@ function initStars() {
       setTimeout(() => b.classList.remove('pop'), 620);
       dotEls[i].classList.add('on');
       countEl.textContent = String(lit.size);
-      Sound.ping(i);
+      playSfx('chime');
 
       // 从星星位置放一小朵星光
       const _sr = b.getBoundingClientRect();
@@ -1078,7 +1346,7 @@ function initStars() {
 
   function revealSecret() {
     secret.hidden = false;
-    Sound.chime();
+    playSfx('chime');
     Fx.show(IS_TOUCH ? 3 : 5, 800);
     toast('五颗星都点亮了，看看给你的悄悄话 ✦', 3000);
     setTimeout(() => secret.scrollIntoView({ behavior: 'smooth', block: 'center' }), 260);
@@ -1214,7 +1482,7 @@ function initBook() {
     save();
     render();
     input.value = '';
-    Sound.ping(3);
+    playSfx('click');
     toast('祝福已贴上手账墙 ✦');
   });
 
@@ -1234,7 +1502,7 @@ function initBook() {
 function initEnding() {
   $('#againFwBtn').addEventListener('click', () => {
     Fx.show(IS_TOUCH ? 5 : 8, 1400);
-    Sound.chime();
+    playSfx('chime');
     toast('再放一次，开心也要再来一次 ✦');
   });
 
@@ -1271,7 +1539,7 @@ function initEnding() {
       title.classList.remove('holding');
       egg.textContent = CONFIG.ending.longPressEgg;
       egg.hidden = false;
-      Sound.chime();
+      playSfx('chime');
       const _tr = title.getBoundingClientRect();
       if (_tr && _tr.width) Fx.burst(_tr.left + _tr.width / 2, _tr.top + _tr.height / 2, { count: 40, speed: 3.2 });
     }, 2000);
@@ -1349,7 +1617,7 @@ function initSecretLetter() {
     timer = setTimeout(() => {
       btn.hidden = false;
       btn.classList.add('appear');
-      Sound.chime();
+      playSfx('chime');
     }, waitMs);
   };
   const endSec = $('#sec-end');
@@ -1371,7 +1639,7 @@ function initSecretLetter() {
     modal.hidden = false;
     requestAnimationFrame(() => modal.classList.add('show'));
     document.body.classList.add('modal-open');
-    Sound.chime();
+    playSfx('chime');
   };
   const close = () => {
     modal.classList.remove('show');
@@ -1426,6 +1694,10 @@ function boot() {
   Sky.init();
   Fx.init();
   Sound.initBgm();
+  Sfx.init();            // 预加载 4 个音效文件（避免首次播放时的网络延迟）
+  // 首个用户手势时解锁音频：移动端自动播放策略要求 play() 发生在手势内
+  addEventListener('pointerdown', () => { Sfx.init(); Sfx.unlock(); }, { once: true, passive: true });
+  addEventListener('touchstart', () => { Sfx.init(); Sfx.unlock(); }, { once: true, passive: true });
   requestAnimationFrame(loop);
 
   initIntro();
@@ -1639,7 +1911,7 @@ function initV2() {
     stampSeal.hidden = false;
     void stampSeal.offsetWidth;
     stampSeal.classList.add('on');
-    Sound.chime();
+    playSfx('chime');
     Fx.show(IS_TOUCH ? 4 : 6, 1200);
   };
   if (stampBtn) {
@@ -1684,7 +1956,7 @@ function initV2() {
       wishCard.hidden = false;
       try { localStorage.setItem(WISH_KEY, safe); } catch (_) {}
       Fx.show(3, 900);
-      Sound.chime();
+      playSfx('chime');
     });
   }
 
@@ -1724,7 +1996,7 @@ function initV2() {
         setTimeout(() => sp.remove(), 1100);
       }
       Fx.show(3, 800);
-      Sound.chime();
+      playSfx('click');
     });
     memo.style.position = memo.style.position || 'relative';
     memo.appendChild(sticker);
@@ -1754,7 +2026,7 @@ function initV2() {
       const cur = stickerEl.textContent;
       const next = list[(list.indexOf(cur) + 1) % list.length];
       stickerEl.textContent = next;
-      Sound.chime();
+      playSfx('click');
     });
     const del = document.createElement('button');
     del.type = 'button';
@@ -1781,10 +2053,95 @@ function initV2() {
     posterBtn.hidden = false;
     posterBtn.addEventListener('click', () => {
       const sub = V2.posterSub || '';
-      const css = 'body{margin:0;background:linear-gradient(160deg,#FBE7DA,#C5B5E8);min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:KaiTi,STKaiti,serif;color:#3C2F4A;padding:20px;box-sizing:border-box}.card{background:#FFFDF6;border:1px solid rgba(180,150,180,.3);border-radius:20px;padding:30px 24px;box-shadow:0 20px 60px rgba(160,140,180,.3);max-width:340px;text-align:center}.sub{font-size:12px;color:#9b8ba6;letter-spacing:.15em;margin-bottom:14px}.title{font-size:22px;margin:0 0 16px;color:#C24A5C}.line{height:1px;background:linear-gradient(90deg,transparent,#E0B888,transparent);margin:14px 0}.txt{font-size:16px;line-height:1.8;color:#5b4f6a;white-space:pre-line}.seal{margin-top:18px;display:inline-block;padding:6px 14px;border:2px solid #C24A5C;color:#C24A5C;border-radius:8px;font-size:13px;letter-spacing:.1em;transform:rotate(-6deg)}.hint{font-size:11px;color:#9b8ba6;margin-top:24px}';
+      const css = 'body{margin:0;background:linear-gradient(160deg,#FBE7DA,#C5B5E8);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:KaiTi,STKaiti,serif;color:#3C2F4A;padding:20px;box-sizing:border-box}.card{background:#FFFDF6;border:1px solid rgba(180,150,180,.3);border-radius:20px;padding:30px 24px;box-shadow:0 20px 60px rgba(160,140,180,.3);max-width:340px;width:100%;text-align:center}.sub{font-size:12px;color:#9b8ba6;letter-spacing:.15em;margin-bottom:14px}.title{font-size:22px;margin:0 0 16px;color:#C24A5C}.line{height:1px;background:linear-gradient(90deg,transparent,#E0B888,transparent);margin:14px 0}.txt{font-size:16px;line-height:1.8;color:#5b4f6a;white-space:pre-line}.seal{margin-top:18px;display:inline-block;padding:6px 14px;border:2px solid #C24A5C;color:#C24A5C;border-radius:8px;font-size:13px;letter-spacing:.1em;transform:rotate(-6deg)}.hint{font-size:11px;color:#9b8ba6;margin-top:24px}.preview{display:block;width:100%;max-width:340px;margin:18px auto 0;border-radius:14px;box-shadow:0 14px 30px -12px rgba(69,60,92,.4);-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.actions{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.save,.print{font-family:inherit;font-size:14px;border-radius:999px;padding:11px 20px;cursor:pointer;border:1px solid transparent;-webkit-tap-highlight-color:transparent}.save{background:linear-gradient(135deg,#E07A8B,#C24A5C);color:#fff;box-shadow:0 12px 24px -10px rgba(194,74,92,.85)}.print{background:rgba(255,255,255,.72);color:#5b4f6a;border-color:rgba(180,150,180,.45)}.note{font-size:11px;color:#9b8ba6;margin:12px 0 0;max-width:340px;line-height:1.8;text-align:center}canvas.off{display:none}';
+      const name = CONFIG.name || '小卢同学';
+      const _now = new Date();
+      const date = _now.getFullYear() + '.' + String(_now.getMonth() + 1).padStart(2, '0') + '.' + String(_now.getDate()).padStart(2, '0');
+      const file = (CONFIG.name || '寿星') + '-生日海报.png';
+      // 画海报图要用的数据，注入到新窗口里
+      const data = JSON.stringify({
+sub: sub, name: name, share: V2.shareText || '', date: date, file: file,
+        sign: (CONFIG.ending && CONFIG.ending.sign) || '小王同学',
+        url: String(location.href).replace(/^file:\/\//, ''),
+      }).replace(/</g, '\\u003c');
+      // 新窗口里的脚本：把海报画进 canvas，并接上「保存到手机 / 打印」两个按钮
+      const posterScript =
+        '(function(){' +
+        'var D=' + data + ';' +
+        'var c=document.getElementById("pc"),x=c.getContext("2d"),W=c.width,H=c.height;' +
+        'var SR="Georgia, Songti SC, STSong, SimSun, serif";' +
+        'var SN="PingFang SC, Microsoft YaHei, Hiragino Sans GB, sans-serif";' +
+        'function rr(a,b,w,h,r){r=Math.min(r,w/2,h/2);x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath();}' +
+        'function tracked(t,cx,y,sp){var ch=String(t||"").split(""),tot=0,i;for(i=0;i<ch.length;i++){tot+=x.measureText(ch[i]).width+sp;}tot-=sp;var px=cx-tot/2;x.textAlign="left";for(i=0;i<ch.length;i++){x.fillText(ch[i],px,y);px+=x.measureText(ch[i]).width+sp;}x.textAlign="center";}' +
+        'function wrap(t,maxW){var P="，。、；：！？）】》」』…·,.;:!?)]}>";var out=[],line="";' +
+        'var ps=String(t==null?"":t).replace(/\\r/g,"").split("\\n");' +
+        'for(var i=0;i<ps.length;i++){var p=ps[i].trim();' +
+        'if(!p){if(out.length)out.push("");continue;}' +
+        'for(var j=0;j<p.length;j++){var ch=p[j];' +
+        'if(line&&x.measureText(line+ch).width>maxW){if(P.indexOf(ch)>=0){line+=ch;continue;}out.push(line);line=ch;}' +
+        'else{line+=ch;}}out.push(line);out.push("");}' +
+        'while(out.length&&out[out.length-1]==="")out.pop();return out;}' +
+        /* 背景：米白纸感 + 极淡暖色弧块 + 浅色横纹 */
+        'x.fillStyle="#FBF8F3";x.fillRect(0,0,W,H);' +
+        'x.fillStyle="rgba(201,169,106,.07)";x.beginPath();x.arc(W-120,H*0.16,300,0,Math.PI*2);x.fill();' +
+        'x.fillStyle="rgba(176,137,104,.05)";x.beginPath();x.arc(90,H*0.92,240,0,Math.PI*2);x.fill();' +
+        'x.fillStyle="rgba(160,140,110,.035)";for(var ty=0;ty<H;ty+=9){x.fillRect(0,ty,W,1);}' +
+        /* 安全边距内的细线框（双层） */
+        'x.strokeStyle="rgba(176,137,104,.5)";x.lineWidth=2;x.strokeRect(46,46,W-92,H-92);' +
+        'x.strokeStyle="rgba(176,137,104,.22)";x.lineWidth=1;x.strokeRect(62,62,W-124,H-124);' +
+        /* 眉标 */
+        'x.textBaseline="alphabetic";x.textAlign="center";x.fillStyle="#B08968";x.font="300 24px "+SN;tracked("HAPPY BIRTHDAY",W/2,188,8);' +
+        /* 副标题（日期） */
+        'x.fillStyle="rgba(90,74,58,.62)";x.font="300 28px "+SN;x.fillText(D.sub,W/2,244);' +
+        /* 主标题：名字（衬线、居中、放大） */
+        'var nm=String(D.name||"");var ts=76;x.font="700 "+ts+"px "+SR;' +
+        'while(ts>44&&x.measureText(nm).width>W-320){ts-=2;x.font="700 "+ts+"px "+SR;}' +
+        'x.fillStyle="#3A322A";x.fillText(nm,W/2,318);' +
+        'x.fillStyle="#B08968";x.font="300 40px "+SN;x.fillText("生日快乐",W/2,432);' +
+        /* 分隔线 + 小菱形 */
+        'var lg=x.createLinearGradient(300,0,W-300,0);lg.addColorStop(0,"rgba(176,137,104,0)");lg.addColorStop(.5,"rgba(176,137,104,.85)");lg.addColorStop(1,"rgba(176,137,104,0)");' +
+        'x.fillStyle=lg;x.fillRect(300,480,W-600,1.5);' +
+        'x.fillStyle="#B08968";x.save();x.translate(W/2,481);x.rotate(Math.PI/4);x.fillRect(-4,-4,8,8);x.restore();' +
+        /* 正文：居中、自动换行、行高 1.6 */
+        'x.fillStyle="#4E453A";var bodyMax=W-320,bs=30,lh=0,rows=[];' +
+        'for(var si=0;si<3;si++){x.font=bs+"px "+SN;var ls=wrap(D.share,bodyMax);lh=Math.round(bs*1.6);' +
+        'rows=[];for(var q=0;q<ls.length;q++){if(!ls[q]){if(rows.length)rows[rows.length-1].g=10;}else rows.push({t:ls[q],g:0});}' +
+        'var tot=0;for(var q2=0;q2<rows.length;q2++)tot+=lh+rows[q2].g;' +
+        'if(tot<=560||si===2){break;}bs-=2;}' +
+        'x.font=bs+"px "+SN;x.fillStyle="#4E453A";var by=560+Math.max(0,Math.min(220,(640-tot)/2));x.textAlign="center";' +
+        'for(var q3=0;q3<rows.length;q3++){x.fillText(rows[q3].t,W/2,by);by+=lh+rows[q3].g;}' +
+        /* 装饰性英文 */
+        'x.save();x.textAlign="center";x.fillStyle="rgba(176,137,104,.6)";x.font="italic 300 24px "+SN;' +
+        'x.fillText("With Love",W/2,Math.min(by+58,H-248));x.restore();' +
+        /* 底部：日期 + 落款右对齐 */
+        'x.textAlign="right";x.fillStyle="rgba(90,74,58,.62)";x.font="300 26px "+SN;x.fillText("From "+(D.sign||"小王同学")+"　·　"+D.date,W-108,H-132);' +
+        /* 左下角网址 */
+        'x.textAlign="left";x.fillStyle="rgba(90,74,58,.34)";x.font="300 20px "+SN;x.fillText(D.url||"",108,H-132);' +
+        'var url="";try{url=c.toDataURL("image/png");}catch(e){}' +
+        'var img=document.getElementById("posterImg");if(url){img.src=url;}' +
+        'document.getElementById("saveBtn").addEventListener("click",function(){' +
+        'try{var u=url||c.toDataURL("image/png");var a=document.createElement("a");' +
+        'a.href=u;a.download=D.file;a.rel="noopener";document.body.appendChild(a);a.click();' +
+        'setTimeout(function(){a.remove();},1000);}' +
+        'catch(e){try{window.open(c.toDataURL("image/png"),"_blank");}catch(e2){}}' +
+        '});' +
+        'document.getElementById("printBtn").addEventListener("click",function(){try{window.print();}catch(e){}});' +
+        '})();';
       const w = window.open('', '_blank', 'width=420,height=640');
       if (!w) { toast('\u6D4F\u89C8\u5668\u62E6\u622A\u4E86\u5F39\u7A97'); return; }
-      const html = '<!doctype html><html><head><meta charset=utf-8><title>\u751F\u65E5\u6D77\u62A5</title><style>' + css + '</style></head><body><div class=card><div class=sub>' + sub + '</div><h1 class=title>' + esc(CONFIG.name || '\u5C0F\u5362\u540C\u5B66') + '\uFF0C\u751F\u65E5\u5FEB\u4E50</h1><div class=line></div><div class=txt>' + (V2.shareText || '').replace(/</g, '&lt;') + '</div><div class=seal>' + (V2.stampText || '') + '</div><div class=hint>\u957F\u6309\u56FE\u7247\u53EF\u4FDD\u5B58 \u00B7 ' + new Date().toLocaleDateString() + '</div></div><script>setTimeout(function(){try{window.print()}catch(e){}},300)</script></body></html>';
+      const html = '<!doctype html><html lang=zh-CN><head><meta charset=utf-8>' +
+        '<meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">' +
+        '<title>生日海报</title><style>' + css + '</style></head><body>' +
+        '<div class=card><div class=sub>' + esc(sub) + '</div>' +
+        '<h1 class=title>' + esc(name) + '，生日快乐</h1><div class=line></div>' +
+        '<div class=txt>' + (V2.shareText || '').replace(/</g, '&lt;') + '</div>' +
+        '<div class=hint>点击下方按钮保存海报 · ' + date + '</div></div>' +
+        '<img id=posterImg class=preview alt="生日海报">' +
+        '<div class=actions>' +
+        '<button id=saveBtn class=save type=button>⬇️ 保存海报到手机</button>' +
+        '<button id=printBtn class=print type=button>🖨 打印 / 存为 PDF</button></div>' +
+        '<canvas id=pc class=off width=1080 height=1440></canvas>' +
+        '<script>' + posterScript + '<\/script></body></html>';
       w.document.open(); w.document.write(html); w.document.close();
     });
   }
@@ -2082,77 +2439,177 @@ function seededRand(seed) {
   };
 }
 
+/* —— 海报画布：540×720 —— */
+const POSTER_W = 540, POSTER_H = 720;
+
+/** 圆角矩形路径（海报卡片 / 照片裁切共用） */
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
 const POSTER_TEMPLATES = [
   {
     name: '樱花粉',
-    title: '#C24A5C', sub: '#9b8ba6', body: '#5b4f6a', line: '#E0B888', seal: '#C24A5C', foot: 'rgba(120,100,130,.7)', dark: false,
+    title: '#8C3A5B', sub: 'rgba(140,58,91,.62)', body: '#6B4A57',
+    serif: '"Georgia","Songti SC","STSong","SimSun",serif',
+    sans: '"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif',
     bg(ctx, W, H) {
       const g = ctx.createLinearGradient(0, 0, W, H);
-      g.addColorStop(0, '#FFF5F8'); g.addColorStop(0.52, '#FDE4EC'); g.addColorStop(1, '#F2E6F7');
+      g.addColorStop(0, '#FDE3EC'); g.addColorStop(0.55, '#F7DAE6'); g.addColorStop(1, '#E6D5F1');
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      const rg = ctx.createRadialGradient(W * 0.5, H * 0.24, 8, W * 0.5, H * 0.24, 200);
-      rg.addColorStop(0, 'rgba(255,255,255,.9)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
-      const r = seededRand(20261121);
-      for (let i = 0; i < 46; i++) {
-        const x = r() * W, y = r() * H, s = 4 + r() * 7;
-        ctx.fillStyle = ['rgba(246,174,190,.5)', 'rgba(255,214,226,.55)', 'rgba(235,203,144,.3)'][i % 3];
+      // 白色卡纸 + 细描边
+      ctx.fillStyle = 'rgba(255,253,251,.95)';
+      roundRect(ctx, 22, 22, W - 44, H - 44, 14); ctx.fill();
+      ctx.strokeStyle = 'rgba(224,139,166,.45)'; ctx.lineWidth = 1; ctx.stroke();
+      // 右上角飘落的花瓣
+      const r = seededRand(88);
+      for (let i = 0; i < 16; i++) {
+        const x = W - 46 + r() * 56, y = 34 + r() * 170, s = 3 + r() * 5;
+        ctx.fillStyle = 'rgba(224,139,166,' + (0.16 + r() * 0.26).toFixed(3) + ')';
         ctx.beginPath();
-        ctx.ellipse(x, y, s, s * 0.62, r() * Math.PI, 0, Math.PI * 2);
+        ctx.ellipse(x, y, s, s * 0.6, r() * Math.PI, 0, Math.PI * 2);
         ctx.fill();
       }
+      posterNoise(ctx, W, H, 0.022, 700, 88);
     },
   },
   {
     name: '星空夜',
-    title: '#FFF3D6', sub: 'rgba(214,226,255,.85)', body: 'rgba(236,241,255,.92)', line: '#EBCB90', seal: '#F6D79A', foot: 'rgba(206,218,255,.65)', dark: true,
+    title: '#F6F1E4', sub: 'rgba(246,241,228,.62)', body: 'rgba(246,241,228,.86)',
+    serif: '"Georgia","Songti SC","STSong","SimSun",serif',
+    sans: '"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif',
     bg(ctx, W, H) {
-      const g = ctx.createLinearGradient(0, 0, W * 0.4, H);
-      g.addColorStop(0, '#1B2140'); g.addColorStop(0.55, '#2C3566'); g.addColorStop(1, '#171C36');
+      const g = ctx.createLinearGradient(0, 0, W * 0.6, H);
+      g.addColorStop(0, '#1B2145'); g.addColorStop(0.6, '#2A2350'); g.addColorStop(1, '#43305C');
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // 星星
       const r = seededRand(1121);
       for (let i = 0; i < 120; i++) {
-        const x = r() * W, y = r() * H, s = r() * 1.7 + 0.4;
-        ctx.fillStyle = 'rgba(255,255,255,' + (0.25 + r() * 0.6) + ')';
+        const x = r() * W, y = r() * H, s = r() * 1.5 + 0.4;
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.12 + r() * 0.5).toFixed(3) + ')';
         ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill();
       }
-      const mg = ctx.createRadialGradient(W * 0.78, H * 0.17, 6, W * 0.78, H * 0.17, 90);
-      mg.addColorStop(0, 'rgba(255,240,200,.95)'); mg.addColorStop(0.25, 'rgba(255,230,170,.35)'); mg.addColorStop(1, 'rgba(255,230,170,0)');
-      ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(W * 0.78, H * 0.17, 90, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#FFF3D6';
-      ctx.beginPath(); ctx.arc(W * 0.78, H * 0.17, 30, 0, Math.PI * 2); ctx.fill();
+      // 月亮
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = '#F7E9B8';
+      ctx.beginPath(); ctx.arc(W - 88, 92, 26, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath(); ctx.arc(W - 76, 84, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      // 内框
+      ctx.strokeStyle = 'rgba(232,201,122,.5)'; ctx.lineWidth = 1;
+      roundRect(ctx, 22, 22, W - 44, H - 44, 14); ctx.stroke();
+      posterNoise(ctx, W, H, 0.03, 700, 2024);
     },
   },
   {
     name: '奶油简',
-    title: '#6C5B4A', sub: '#A2937F', body: '#5C5348', line: '#C9A45C', seal: '#A2937F', foot: 'rgba(120,108,92,.65)', dark: false,
+    title: '#5A4632', sub: 'rgba(90,70,50,.6)', body: '#6B5844',
+    serif: '"Georgia","Songti SC","STSong","SimSun",serif',
+    sans: '"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif',
     bg(ctx, W, H) {
-      ctx.fillStyle = '#FFFDF6'; ctx.fillRect(0, 0, W, H);
-      ctx.strokeStyle = 'rgba(180,160,130,.45)'; ctx.lineWidth = 2;
-      ctx.strokeRect(26, 26, W - 52, H - 52);
-      ctx.strokeStyle = 'rgba(180,160,130,.22)'; ctx.lineWidth = 1;
-      ctx.strokeRect(34, 34, W - 68, H - 68);
-      const r = seededRand(1106);
-      ctx.fillStyle = 'rgba(201,164,92,.16)';
-      for (let i = 0; i < 26; i++) {
-        const x = r() * W, y = r() * H, s = 1.2 + r() * 1.8;
-        ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill();
-      }
+      ctx.fillStyle = '#FBF7F0'; ctx.fillRect(0, 0, W, H);
+      const g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, 'rgba(255,255,255,.9)');
+      g.addColorStop(1, 'rgba(240,228,210,.55)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // 双层细框
+      ctx.strokeStyle = 'rgba(201,169,106,.75)'; ctx.lineWidth = 1.4;
+      roundRect(ctx, 22, 22, W - 44, H - 44, 10); ctx.stroke();
+      ctx.strokeStyle = 'rgba(201,169,106,.32)'; ctx.lineWidth = 1;
+      roundRect(ctx, 30, 30, W - 60, H - 60, 8); ctx.stroke();
+      // 四角小金点
+      ctx.fillStyle = 'rgba(201,169,106,.8)';
+      [[34, 34], [W - 34, 34], [34, H - 34], [W - 34, H - 34]].forEach((p) => {
+        ctx.beginPath(); ctx.arc(p[0], p[1], 2.6, 0, Math.PI * 2); ctx.fill();
+      });
+      posterNoise(ctx, W, H, 0.02, 700, 31415);
     },
   },
 ];
 
-/** Canvas 文本按宽度折行 */
+/** 海报纸面噪点（极淡颗粒，增加质感） */
+function posterNoise(ctx, W, H, alpha, count, seed) {
+  const r = seededRand(seed);
+  for (let i = 0; i < count; i++) {
+    const x = r() * W, y = r() * H, s = r() * 1.4 + 0.5;
+    ctx.fillStyle = 'rgba(0,0,0,' + (alpha * (0.35 + r() * 0.65)).toFixed(4) + ')';
+    ctx.fillRect(x, y, s, s);
+  }
+}
+
+/** 自适应字号：保证文字不超宽 */
+function fitFont(ctx, text, maxWidth, maxSize, minSize, fontTpl) {
+  let size = maxSize;
+  while (size > minSize) {
+    ctx.font = fontTpl.replace('%s', size);
+    if (ctx.measureText(text).width <= maxWidth) break;
+    size -= 2;
+  }
+  ctx.font = fontTpl.replace('%s', size);
+  return size;
+}
+
+/** 带字间距的排版（眉标等小字用） */
+function drawTracked(ctx, text, x, y, spacing, align) {
+  const chars = Array.from(String(text || ''));
+  if (!chars.length) return;
+  let total = 0;
+  chars.forEach((ch) => { total += ctx.measureText(ch).width + spacing; });
+  total -= spacing;
+  const prev = ctx.textAlign;
+  ctx.textAlign = 'left';
+  let cx = align === 'right' ? x - total : (align === 'center' ? x - total / 2 : x);
+  chars.forEach((ch) => { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + spacing; });
+  ctx.textAlign = prev;
+}
+
+/** 四角星点缀（极淡） */
+function posterSpark(ctx, x, y, size, color, alpha) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const ang = (Math.PI / 4) * i - Math.PI / 2;
+    const rr = i % 2 === 0 ? size : size * 0.32;
+    const px = Math.cos(ang) * rr, py = Math.sin(ang) * rr;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Canvas 文本按宽度精确折行（中文逐字断行 + 标点避头尾 + 段落留空行） */
 function wrapCanvasText(ctx, text, maxWidth) {
+  const PUNCT = '，。、；：！？）】》」』”’…·,.;:!?)]}>';
   const lines = [];
-  String(text || '').split('\n').forEach((para) => {
+  String(text == null ? '' : text).replace(/\r/g, '').split('\n').forEach((para) => {
+    const p = para.trim();
+    if (!p) { if (lines.length) lines.push(''); return; }
     let line = '';
-    for (const ch of para) {
-      if (ctx.measureText(line + ch).width > maxWidth) { lines.push(line); line = ch; }
-      else line += ch;
+    for (const ch of p) {
+      const test = line + ch;
+      if (line && ctx.measureText(test).width > maxWidth) {
+        // 标点不落行首：让它跟着上一行走
+        if (PUNCT.indexOf(ch) >= 0) { line = test; continue; }
+        lines.push(line); line = ch;
+      } else line = test;
     }
     lines.push(line);
+    lines.push('');           // 段落之间留一个空行
   });
+  while (lines.length && lines[lines.length - 1] === '') lines.pop();
   return lines;
 }
 
@@ -2250,96 +2707,133 @@ function initPoster() {
   }
   function draw() {
     const tpl = POSTER_TEMPLATES[state.tpl] || POSTER_TEMPLATES[0];
-    const W = 540, H = 720, dpr = Math.min(devicePixelRatio || 1, 2);
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = POSTER_W, H = POSTER_H;
+    canvas.width = W; canvas.height = H;          // 540×720
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, W, H);
     tpl.bg(ctx, W, H);
+    ctx.textBaseline = 'top';
 
-    const serif = 'KaiTi, STKaiti, "Songti SC", serif';
-    ctx.textAlign = 'center';
-
-    // 顶部小字
-    ctx.fillStyle = tpl.sub;
-    ctx.font = '15px ' + serif;
+    const name = CONFIG.name || '寿星';
     const sub = (V2 && V2.posterSub) || CONFIG.birthdayText || '';
-    ctx.fillText(sub, W / 2, 92);
+    const sign = (CONFIG.ending && CONFIG.ending.sign) || '';
+    const dateText = CONFIG.birthdayText || new Date().toLocaleDateString();
+    // 落款日期：2026.11.21 形式（与旧版海报一致）
+    const _sd = new Date();
+    const signDate = _sd.getFullYear() + '.' + String(_sd.getMonth() + 1).padStart(2, '0') + '.' + String(_sd.getDate()).padStart(2, '0');
+    const body = String(textArea.value || '').trim();
+    const M = 44;
 
-    // 主标题
-    ctx.fillStyle = tpl.title;
-    ctx.font = 'bold 38px ' + serif;
-    ctx.fillText((CONFIG.name || '寿星') + '，生日快乐', W / 2, 152);
-
-    // 金线
-    const lg = ctx.createLinearGradient(W * 0.22, 0, W * 0.78, 0);
-    lg.addColorStop(0, 'rgba(0,0,0,0)');
-    lg.addColorStop(0.5, tpl.line);
-    lg.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = lg;
-    ctx.fillRect(W * 0.22, 176, W * 0.56, 2);
-
-    // 照片
-    let y = 214;
+    // 照片：圆角裁切（宽 = 画布宽 - 两侧安全边距）
+    let photoBox = null;
     if (imgEl && state.photo !== 'none') {
-      const pw = 340, ph = 220;
-      const px = (W - pw) / 2;
-      ctx.save();
-      roundRect(ctx, px, y, pw, ph, 18);
-      ctx.clip();
+      const pw = W - M * 2;
       const ar = imgEl.naturalWidth / imgEl.naturalHeight;
-      let dw = pw, dh = ph, ox = px, oy = y;
-      if (ar > pw / ph) { dw = ph * ar; ox = px - (dw - pw) / 2; }
-      else { dh = pw / ar; oy = y - (dh - ph) / 2; }
-      ctx.drawImage(imgEl, ox, oy, dw, dh);
-      ctx.restore();
-      ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2;
-      roundRect(ctx, px, y, pw, ph, 18); ctx.stroke();
-      y += ph + 34;
+      const ph = Math.round(Math.min(pw / ar, 250));
+      photoBox = { x: M, y: 0, w: pw, h: ph };
     }
 
-    // 祝福正文
-    ctx.fillStyle = tpl.body;
-    ctx.font = '19px ' + serif;
-    ctx.textAlign = 'left';
-    const maxW = W - 120;
-    const lines = wrapCanvasText(ctx, textArea.value || '', maxW).slice(0, 9);
-    lines.forEach((ln, i) => {
-      ctx.textAlign = 'center';
-      ctx.fillText(ln, W / 2, y + i * 34);
+    /* —— 排版：眉标 → 日期 → 标题 → 照片 → 正文 → 印章 → 落款 —— */
+    const titleSize = fitFont(ctx, name, W - M * 2, 40, 24, '700 %spx ' + tpl.serif);
+    const bodySize = 15;
+    const bodyLH = Math.round(bodySize * 1.6);
+    const maxBodyW = W - M * 2 - 16;
+
+    ctx.font = bodySize + 'px ' + tpl.sans;
+    let lines = wrapCanvasText(ctx, body, maxBodyW);
+    const maxLines = photoBox ? 6 : 10;
+    if (lines.length > maxLines) {
+      lines = lines.slice(0, maxLines);
+      // 去掉尾部空行，避免省略号单独占一行
+      while (lines.length && !lines[lines.length - 1]) lines.pop();
+      lines[lines.length - 1] = lines[lines.length - 1].replace(/.$/, '') + '…';
+    }
+
+    // 行 → 段落行（空行代表段间距）
+    const rows = [];
+    lines.forEach((ln) => {
+      if (!ln) { if (rows.length) rows[rows.length - 1].gapAfter = 7; }
+      else rows.push({ text: ln, gapAfter: 0 });
     });
-    y += lines.length * 34 + 18;
+    const hBody = rows.reduce((s, r) => s + bodyLH + r.gapAfter, 0);
 
-    // 印章
-    ctx.save();
-    ctx.translate(W - 96, H - 132);
-    ctx.rotate(-0.1);
-    ctx.strokeStyle = tpl.seal; ctx.lineWidth = 2;
-    ctx.strokeRect(-42, -20, 84, 40);
-    ctx.fillStyle = tpl.seal;
-    ctx.font = '17px ' + serif;
-    ctx.textAlign = 'center';
-    ctx.fillText((V2 && V2.stampText) || '生日快乐', 0, 6);
-    ctx.restore();
+    const hEyebrow = 14, hDate = 16, hTitle = titleSize, hSub = 24;
+    const hPhoto = photoBox ? photoBox.h + 20 : 0;
+    const hSign = 22;
+    const fixed = hEyebrow + 8 + hDate + 18 + 14 + hTitle + 6 + hSub + 20 + hPhoto + hBody + hSign + 30;
+    // 内容过长时按比例压缩间距，保证不溢出画布
+    const k = fixed > H - M * 2 ? (H - M * 2) / fixed : 1;
+    let y = Math.max(M, Math.round((H - fixed * k) / 2) - 4);
 
-    // 底部：文字网址 + 日期（二维码降级）
+    // 1) 眉标 + 日期（居中）
     ctx.textAlign = 'center';
+    ctx.fillStyle = tpl.sub;
+    ctx.font = '300 11px ' + tpl.sans;
+    drawTracked(ctx, 'HAPPY BIRTHDAY', W / 2, y, 3, 'center');
+    y += (hEyebrow + 8) * k;
+    ctx.font = '300 12px ' + tpl.sans;
+    ctx.fillText(sub && sub.indexOf(dateText) >= 0 ? sub : (sub ? dateText + '　·　' + sub : dateText), W / 2, y);
+    y += (hDate + 18) * k;
+
+    // 2) 主标题 + 「，生日快乐」
+    ctx.fillStyle = tpl.title;
+    ctx.font = '700 ' + titleSize + 'px ' + tpl.serif;
+    ctx.fillText(name, W / 2, y);
+    y += (hTitle + 6) * k;
+    ctx.font = '300 20px ' + tpl.sans;
+    ctx.fillText('生日快乐', W / 2, y);
+    y += (hSub + 20) * k;
+
+    // 3) 一条细线
+    ctx.fillStyle = tpl.line;
+    ctx.globalAlpha = 0.7;
+    ctx.fillRect(W / 2 - 26, y, 52, 1.5);
+    ctx.globalAlpha = 1;
+    y += 14 * k;
+
+    // 4) 照片（圆角裁切）
+    if (photoBox) {
+      photoBox.y = Math.round(y);
+      drawPhoto(photoBox);
+      y += photoBox.h + 20 * k;
+    }
+
+    // 5) 祝福正文（居中折行，行高 1.6 倍字号）
+    ctx.fillStyle = tpl.body;
+    ctx.font = bodySize + 'px ' + tpl.sans;
+    rows.forEach((r) => {
+      ctx.fillText(r.text, W / 2, y);
+      y += bodyLH * k + r.gapAfter * k;
+    });
+    y += 12 * k;
+
+    // 6) 落款（署名 + 日期，右对齐）
+    ctx.textAlign = 'right';
+    ctx.fillStyle = tpl.sub;
+    ctx.font = '300 12px ' + tpl.sans;
+ctx.fillText(sign ? 'From ' + sign + '　·　' + signDate : signDate, W - M, H - M - 34);
+    ctx.textAlign = 'center';
+
+    // 7) 右下角网址（未使用二维码库，避免外部依赖）
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = tpl.foot;
-    ctx.font = '12px ' + serif;
+    ctx.font = '300 10px ' + tpl.sans;
     const url = String(location.href).replace(/^file:\/\//, '');
-    ctx.fillText(url.length > 58 ? url.slice(0, 57) + '…' : url, W / 2, H - 62);
-    ctx.font = '11px ' + serif;
-    ctx.fillText('长按图片可保存 · ' + new Date().toLocaleDateString(), W / 2, H - 40);
+    ctx.fillText(url.length > 46 ? url.slice(0, 45) + '…' : url, W - M, H - M + 6);
   }
 
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
+  // —— 圆角照片（clip 后居中裁切） ——
+  function drawPhoto(box) {
+    ctx.save();
+    roundRect(ctx, box.x, box.y, box.w, box.h, 12);
+    ctx.clip();
+    const ar = imgEl.naturalWidth / imgEl.naturalHeight;
+    let dw = box.w, dh = box.h, ox = box.x, oy = box.y;
+    if (ar > box.w / box.h) { dw = box.h * ar; ox = box.x - (dw - box.w) / 2; }
+    else { dh = box.w / ar; oy = box.y - (dh - box.h) / 2; }
+    ctx.drawImage(imgEl, ox, oy, dw, dh);
+    ctx.restore();
   }
 
   function save() {
@@ -3181,7 +3675,7 @@ function initPhotos() {
         return;
       }
       applyPhoto(curMemo, dataURL);
-      Sound.ping(2);
+      playSfx('click');
       toast('照片已放进第 ' + (curIdx + 1) + ' 页手账 ✦');
     });
     fileInput.value = '';
