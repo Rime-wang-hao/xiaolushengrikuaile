@@ -14,6 +14,7 @@ D:\shengrizhufu\
 ├── sfx-click.mp3  音效：按钮点击 / 拆礼物 / 卡片翻转
 ├── sfx-page.mp3   音效：时光手账左右翻页
 ├── sfx-blow.mp3   音效：吹灭蜡烛
+├── sfx-eat.mp3    音效：点「隔空同享」蛋糕照片（吃东西反馈，0.65s）
 ├── sfx-chime.mp3  音效：许愿成功 / 盖章 / 终极小信弹出 / 当天烟花
 ├── surprise.jpg 隔空同享板块底部的实物礼物照片（滚动到此处淡入，懒加载 + 失败兜底）
 ├── cake_hers.jpg 「隔空同享」板块：你的蛋糕
@@ -100,7 +101,8 @@ D:\shengrizhufu\
 | music.maxLoopSeconds / music.maxDecodeBytes | 短于多少秒才走「Web Audio 无缝循环」；文件大于多少字节就跳过解码（省手机内存） |
 | sfx.enable | 音效总开关（`false` = `playSfx()` 直接 return，全部静音） |
 | sfx.volume | 音效音量（0~1，默认 0.85） |
-| sfx.files | 四个音效文件名映射：`click` / `page` / `blow` / `chime` |
+| sfx.files | 五个音效文件名映射：`click` / `page` / `blow` / `chime` / `eat` |
+| sfx.minGap | 每个音效两次播放的最小间隔（毫秒，默认 `{ eat: 300 }`），防止狂点叠成噪音；未列出的音效不限制 |
 | particles | 背景粒子数量（`stars` / `petals`），移动端自动减半 |
 | enableProgress | 是否记录浏览进度（默认开） |
 | progressTexts.* | 欢迎回来、继续、重新开始等文案；`progressTexts.welcomeAfterMs` 是「欢迎回来」的触发间隔（毫秒，默认 300000 = 5 分钟） |
@@ -150,7 +152,7 @@ D:\shengrizhufu\
 
 - 零依赖、零构建：HTML + CSS + 原生 JavaScript。
 - 动效：Canvas 粒子（星星 / 花瓣 / 烟花）、CSS 动画、滚动驱动。
-- 音效：**真实 mp3 文件**（`sfx-click / sfx-page / sfx-blow / sfx-chime`，放在本目录即可），用 `new Audio()` 预加载；文件缺失只会打一条温和 warn 并静音降级，不影响页面流程。可用 `CONFIG.sfx.enable = false` 一键静音。
+- 音效：**真实 mp3 文件**（`sfx-click / sfx-page / sfx-blow / sfx-chime / sfx-eat`，放在本目录即可），用 `new Audio()` 预加载；文件缺失只会打一条温和 warn 并静音降级，不影响页面流程。可用 `CONFIG.sfx.enable = false` 一键静音。点「隔空同享」蛋糕照片会播 `sfx-eat`（吃东西反馈），并带 300ms 最小间隔防抖；**开启「减少动效」时不播该音效**（保持静音克制）。
 - 背景音乐：**三级兜底、零依赖**——① 短音频（≤ `music.maxLoopSeconds` 且 ≤ `music.maxDecodeBytes`）走 **Web Audio 无缝循环**：fetch 预取 → `decodeAudioData` → 修剪首尾静音 → 60ms 交叉淡化 → `AudioBufferSourceNode.loop = true`，接缝无停顿无爆音（实测接缝落差 0.003，无新增突变）；② 文件过大 / 太长 / `file://` 打开时改用 `<audio loop>`（浏览器原生循环）；③ 文件缺失或解码失败再降级为内置合成八音盒。音量默认 **0.3**，当安静背景铺垫；右上角 ♪ 按钮可随时暂停 / 继续。
 - 数据：愿望与留言存 localStorage，仅保存在打开网页的这台设备上。
 - 兼容：现代浏览器（Edge / Chrome / Safari / 微信内置浏览器）；尊重系统「减弱动态效果」偏好。

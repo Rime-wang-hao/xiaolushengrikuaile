@@ -199,13 +199,16 @@ const CONFIG = {
   sfx: {
     enable: true,                 // ← false = 所有音效静音（playSfx 直接 return）
     volume: 0.85,                 // 音效音量
-    // 把下面 4 个 mp3 放到本目录（与 index.html 同级），文件名不要改
+    // 把下面 5 个 mp3 放到本目录（与 index.html 同级），文件名不要改
     files: {
       click: 'sfx-click.mp3',     // 按钮点击 / 拆礼物 / 卡片翻转
       page:  'sfx-page.mp3',      // 时光手账左右翻页
       blow:  'sfx-blow.mp3',      // 吹灭蜡烛
       chime: 'sfx-chime.mp3',     // 许愿成功 / 盖章 / 终极小信 / 当天烟花
+      eat:   'sfx-eat.mp3',       // 点「隔空同享」蛋糕照片（吃东西反馈）
     },
+    // 同一个音效两次播放的最小间隔（毫秒），0 = 不限制；防止狂点叠成噪音
+    minGap: { eat: 300 },
   },
 
   /* —— 粒子密度（移动端会自动减半，无需改）—— */
@@ -735,6 +738,7 @@ const Sound = {
 const Sfx = {
   els: {},          // name -> HTMLAudioElement
   warned: {},       // name -> 是否已提示过（避免同一个文件反复刷 warn）
+  lastAt: {},       // name -> 上次播放的时间戳（用于最小间隔防抖）
   unlocked: false,  // 移动端是否已完成「手势解锁」
 
   /** 音量（0~1） */
@@ -801,6 +805,17 @@ const Sfx = {
     const files = CONFIG.sfx.files || {};
     const src = files[name];
     if (!src) { console.warn('[sfx] 未定义的音效：' + name); return; }
+
+    // 防抖：同一个音效两次播放至少间隔 CONFIG.sfx.minGap[name] 毫秒
+    //（狂点蛋糕等场景下避免音效叠成噪音；未配置 = 不限制）
+    const gaps = CONFIG.sfx.minGap || {};
+    const gap = Number(gaps[name] || 0);
+    if (gap > 0) {
+      const now = Date.now();
+      if (this.lastAt[name] && now - this.lastAt[name] < gap) return;
+      this.lastAt[name] = now;
+    }
+
     let el = this.els[name];
     if (!el) {
       this.init();
@@ -817,7 +832,7 @@ const Sfx = {
   },
 };
 
-/** 全局播放入口：playSfx('click' | 'page' | 'blow' | 'chime') */
+/** 全局播放入口：playSfx('click' | 'page' | 'blow' | 'chime' | 'eat') */
 function playSfx(name) {
   try { Sfx.play(name); } catch (e) { /* 任何异常都不影响流程 */ }
 }
@@ -3125,8 +3140,9 @@ function initShare() {
 
       if (fxReduced()) {                    // 减少动效：只给一句文字
         toast(cfg.tip || '', 1800);
-        return;
+        return;                             // 静音克制：减少动效下不播吃东西音效
       }
+      playSfx('eat');                       // 吃东西反馈（300ms 内重复点击会被防抖挡掉）
       img.classList.remove('pop');
       void img.offsetWidth;                // 重启动画
       img.classList.add('pop');
